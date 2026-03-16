@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agente de Cobrança</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0d13;color:#e8edf5;font-family:system-ui,sans-serif;min-height:100vh;}
+.hdr{display:flex;align-items:center;gap:10px;padding:13px 18px;background:#111827;border-bottom:1px solid #1f2937;}
+.logo{width:32px;height:32px;background:#3b82f6;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.hdr h1{font-size:14px;font-weight:700;}.hdr span{color:#3b82f6;}
+.tag{margin-left:auto;font-size:10px;color:#3b82f6;border:1px solid rgba(59,130,246,.4);padding:2px 8px;border-radius:20px;}
+main{max-width:980px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:11px;}
+.card{background:#111827;border:1px solid #1f2937;border-radius:11px;padding:14px;}
+.sec{font-size:10px;color:#3b82f6;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;font-weight:600;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.f{display:flex;flex-direction:column;gap:3px;}
+.f label{font-size:10px;color:#6b7280;}
+.f label.w{color:#f59e0b;}
+input[type=text],input[type=number],input[type=password]{background:#0d1117;border:1px solid #1f2937;border-radius:7px;padding:8px 10px;color:#e8edf5;font-size:13px;outline:none;width:100%;}
+input:focus{border-color:#3b82f6;}
+.stat{font-size:13px;font-weight:700;padding:8px 10px;background:#0d1117;border:1px solid #1f2937;border-radius:7px;color:#f59e0b;}
+.key-wrap{display:flex;gap:8px;}
+.key-wrap input{flex:1;border-color:#f59e0b!important;}
+.key-btn{background:rgba(245,158,11,.2);color:#f59e0b;border:1px solid rgba(245,158,11,.4);border-radius:7px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.key-btn:hover{opacity:.8;}
+.key-ok{font-size:11px;color:#10b981;margin-top:4px;display:none;}
+.uparea{border:2px dashed #1f2937;border-radius:9px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
+.uparea:hover,.uparea.drag{border-color:#3b82f6;background:rgba(59,130,246,.04);}
+.uparea.pasting{border-color:#10b981;background:rgba(16,185,129,.04);}
+.uparea input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.pill{display:inline-block;margin-top:7px;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3);padding:3px 9px;border-radius:20px;font-size:10px;}
+.prev{width:100%;max-height:220px;object-fit:contain;border-radius:7px;margin-top:8px;display:none;background:#0d1117;}
+.log{font-size:11px;padding:4px 0;display:none;}
+.log.i{color:#3b82f6;}.log.e{color:#ef4444;}.log.ok{color:#10b981;}
+.empty{text-align:center;padding:20px;color:#4b5563;font-size:12px;}
+.tbl{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{padding:6px 7px;text-align:right;font-size:10px;font-weight:600;color:#6b7280;border-bottom:1px solid #1f2937;white-space:nowrap;}
+th:first-child{text-align:center;}
+td{padding:5px 7px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);color:#e8edf5;}
+td:first-child{text-align:center;font-weight:700;}
+tr:last-child td{border-bottom:none;}
+.dd{background:rgba(245,158,11,.08);color:#f59e0b;}
+.jd{color:#86efac;}.tx{color:#fca5a5;font-weight:600;}.vf{color:#f59e0b;font-weight:700;}.pc{color:#86efac;font-weight:700;}.qt{color:#f59e0b;font-size:10px;}
+.btn-dl{width:100%;padding:11px;border-radius:8px;background:rgba(16,185,129,.14);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;display:none;}
+.btn-dl:hover{opacity:.8;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="logo">📋</div>
+  <h1>Agente de <span>Cobrança</span></h1>
+  <div class="tag">IA · EXCEL · AUTO</div>
+</div>
+<main>
+  <div class="card">
+    <div class="sec">● chave de api</div>
+    <div class="key-wrap">
+      <input type="password" id="apiKey" placeholder="Cole sua chave sk-ant-api03-..."/>
+      <button class="key-btn" onclick="confirmarKey()">✓ Confirmar</button>
+    </div>
+    <div class="key-ok" id="keyOk">✓ Chave confirmada! Pode usar o agente.</div>
+  </div>
+  <div class="card">
+    <div class="sec">● foto do relatório</div>
+    <div class="uparea" id="upArea">
+      <input type="file" id="fotoIn" accept="image/*"/>
+      <div style="font-size:22px;margin-bottom:6px;">📷</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px;">Clique, arraste ou cole a imagem</div>
+      <div style="font-size:11px;color:#6b7280;">Print screen funciona · Win+Shift+S</div>
+      <span class="pill">Ctrl+V para colar</span>
+    </div>
+    <img id="prevImg" class="prev"/>
+    <div id="logEl" class="log"></div>
+  </div>
+  <div class="card">
+    <div class="sec">● identificação</div>
+    <div class="g2">
+      <div class="f"><label>Cliente</label><input type="text" id="fCli" placeholder="Nome do cliente"/></div>
+      <div class="f"><label>Unidade</label><input type="text" id="fUni" placeholder="Ex: Apto 101"/></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec">● dados do contrato</div>
+    <div class="g4">
+      <div class="f"><label>Principal (R$)</label><input type="number" id="fPri" placeholder="0.00"/></div>
+      <div class="f"><label>Multa (R$)</label><input type="number" id="fMul" placeholder="0.00"/></div>
+      <div class="f"><label>Juros (R$)</label><input type="number" id="fJur" placeholder="0.00"/></div>
+      <div class="f"><label>A Vencer (R$)</label><input type="number" id="fAV" placeholder="0.00"/></div>
+    </div>
+    <div class="g4" style="margin-top:8px;">
+      <div class="f"><label>Parc. Vencidas</label><input type="number" id="fPV" placeholder="0"/></div>
+      <div class="f"><label>Parc. a Vencer</label><input type="number" id="fPA" placeholder="0"/></div>
+      <div class="f"><label>Total Parcelas</label><div class="stat" id="totPar">—</div></div>
+      <div class="f"><label class="w">Entrada (R$) ★</label><input type="number" id="fEnt" placeholder="0.00" style="border-color:#f59e0b;"/></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec">● simulação</div>
+    <div id="tabWrap"><div class="empty">Preencha os dados acima para ver a simulação</div></div>
+    <button class="btn-dl" id="btnDl" onclick="baixarExcel()">⬇ Baixar Excel</button>
+  </div>
+</main>
+<script>
+let API_KEY='';
+function confirmarKey(){
+  const val=document.getElementById('apiKey').value.trim();
+  if(!val.startsWith('sk-')){alert('Chave inválida. Deve começar com sk-ant-...');return;}
+  API_KEY=val;
+  localStorage.setItem('cob_key',val);
+  document.getElementById('keyOk').style.display='block';
+  document.getElementById('apiKey').value='●'.repeat(20);
+}
+window.addEventListener('load',()=>{
+  const k=localStorage.getItem('cob_key');
+  if(k){API_KEY=k;document.getElementById('apiKey').value='●'.repeat(20);document.getElementById('keyOk').style.display='block';}
+});
+['fCli','fUni','fPri','fMul','fJur','fAV','fPV','fPA','fEnt'].forEach(id=>document.getElementById(id).addEventListener('input',atualizar));
+function g(id){return document.getElementById(id).value;}
+function n(id){return parseFloat(g(id))||0;}
+function brl(v){return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+document.addEventListener('paste',e=>{
+  for(const item of e.clipboardData?.items||[]){
+    if(item.type.startsWith('image/')){e.preventDefault();processFile(item.getAsFile());break;}
+  }
+});
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='v'){
+    const el=document.getElementById('upArea');
+    el.classList.add('pasting');setTimeout(()=>el.classList.remove('pasting'),700);
+  }
+});
+document.getElementById('fotoIn').addEventListener('change',e=>{if(e.target.files[0])processFile(e.target.files[0]);});
+const ua=document.getElementById('upArea');
+ua.addEventListener('dragover',e=>{e.preventDefault();ua.classList.add('drag');});
+ua.addEventListener('dragleave',()=>ua.classList.remove('drag'));
+ua.addEventListener('drop',e=>{e.preventDefault();ua.classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))processFile(f);});
+function processFile(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      const MAX=4096;let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      const url=c.toDataURL('image/jpeg',.95);
+      document.getElementById('prevImg').src=url;
+      document.getElementById('prevImg').style.display='block';
+      setLog('i','Lendo dados com IA...');
+      analisar(url.split(',')[1]);
+    };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+function setLog(t,m){const el=document.getElementById('logEl');el.className='log '+t;el.style.display='block';el.textContent=m;}
+async function analisar(b64){
+  if(!API_KEY){setLog('e','Configure sua chave de API primeiro.');return;}
+  const prompt=`Analise este relatório financeiro e retorne SOMENTE JSON válido sem markdown:
+{"nome_cliente":string_ou_null,"descricao_unidade":string_ou_null,"principal":número,"multa":número,"juros":número,"a_vencer":número,"parcelas_vencidas":inteiro,"parcelas_a_vencer":inteiro}
+Regras: ponto decimal, sem R$. principal=valor principal vencido. a_vencer=valor total A Vencer. Se não encontrar use null.`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+          {type:'text',text:prompt}
+        ]}]})
+    });
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error.message);
+    const txt=data.content.map(b=>b.text||'').join('').trim();
+    const m=txt.match(/\{[\s\S]*\}/);if(!m)throw new Error('Formato inesperado');
+    const d=JSON.parse(m[0]);
+    if(d.nome_cliente)document.getElementById('fCli').value=d.nome_cliente;
+    if(d.descricao_unidade)document.getElementById('fUni').value=d.descricao_unidade;
+    if(d.principal)document.getElementById('fPri').value=d.principal;
+    if(d.multa)document.getElementById('fMul').value=d.multa;
+    if(d.juros)document.getElementById('fJur').value=d.juros;
+    if(d.a_vencer)document.getElementById('fAV').value=d.a_vencer;
+    if(d.parcelas_vencidas)document.getElementById('fPV').value=d.parcelas_vencidas;
+    if(d.parcelas_a_vencer)document.getElementById('fPA').value=d.parcelas_a_vencer;
+    setLog('ok','✓ Dados preenchidos automaticamente!');atualizar();
+  }catch(err){setLog('e','Erro: '+err.message);atualizar();}
+}
+function atualizar(){
+  const pv=parseInt(g('fPV'))||0,pa=parseInt(g('fPA'))||0,tot=pv+pa;
+  document.getElementById('totPar').textContent=tot||'—';
+  const pri=n('fPri'),mul=n('fMul'),jur=n('fJur'),av=n('fAV'),ent=n('fEnt');
+  if(!pri&&!jur&&!av){document.getElementById('tabWrap').innerHTML='<div class="empty">Preencha os dados acima para ver a simulação</div>';document.getElementById('btnDl').style.display='none';return;}
+  let rows='';
+  [35,40,45,50,55,60,65,70].forEach(desc=>{
+    const pct=desc/100,jd=jur*(1-pct),sub=pri+mul+jd+av,taxa=sub*.05,vf=sub+taxa,saldo=Math.max(vf-ent,0);
+    const pc=vf<=ent?'<td class="qt">Quitado à vista</td>':`<td class="pc">${tot>0?brl(saldo/tot):'—'}</td>`;
+    rows+=`<tr><td class="dd">${desc}%</td><td>${brl(pri)}</td><td>${brl(mul)}</td><td>${brl(jur)}</td><td class="jd">${brl(jd)}</td><td>${brl(av)}</td><td>${brl(sub)}</td><td class="tx">${brl(taxa)}</td><td class="vf">${brl(vf)}</td><td>${brl(ent)}</td><td>${brl(saldo)}</td>${pc}</tr>`;
+  });
+  document.getElementById('tabWrap').innerHTML=`<div class="tbl"><table><thead><tr>
+    <th style="text-align:center">Desc.</th><th>Principal</th><th>Multa</th><th>Juros</th>
+    <th>Juros c/desc.</th><th>A Vencer</th><th>Subtotal</th><th>5% Empresa</th>
+    <th>Valor Final</th><th>Entrada</th><th>Saldo</th><th>Parcela (${tot}x)</th>
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('btnDl').style.display='block';
+}
+function baixarExcel(){
+  const pri=n('fPri'),mul=n('fMul'),jur=n('fJur'),av=n('fAV'),ent=n('fEnt');
+  const pv=parseInt(g('fPV'))||0,pa=parseInt(g('fPA'))||0,tot=pv+pa;
+  const cli=g('fCli')||'—',uni=g('fUni')||'—';const b=v=>v.toFixed(2);
+  const rows=[['SIMULAÇÃO DE NEGOCIAÇÃO DE DÍVIDA'],[''],['CLIENTE',cli,'','UNIDADE',uni],[''],
+    ['Principal','Multa','Juros','A Vencer','Parc. Vencidas','Parc. a Vencer','Total','Entrada'],
+    [b(pri),b(mul),b(jur),b(av),pv,pa,tot,b(ent)],[''],
+    ['Desc.%','Principal','Multa','Juros Original','Juros c/Desc.','A Vencer','Subtotal','5% Empresa','Valor Final','Entrada','Saldo',`Parcela (${tot}x)`]
+  ];
+  [35,40,45,50,55,60,65,70].forEach(desc=>{
+    const pct=desc/100,jd=jur*(1-pct),sub=pri+mul+jd+av,taxa=sub*.05,vf=sub+taxa,saldo=Math.max(vf-ent,0);
+    rows.push([desc+'%',b(pri),b(mul),b(jur),b(jd),b(av),b(sub),b(taxa),b(vf),b(ent),b(saldo),vf<=ent?'Quitado à vista':(tot>0?(saldo/tot).toFixed(2):'—')]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=Array(12).fill({wch:16});
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Simulação');
+  const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([buf],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
+  a.download=`simulacao_${cli.replace(/\s+/g,'_').toLowerCase()}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.click();URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
