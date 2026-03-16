@@ -1,3 +1,4 @@
+cat << 'HTMLEOF' > /mnt/user-data/outputs/index.html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -111,13 +112,15 @@ function confirmarKey(){
   const val=document.getElementById('apiKey').value.trim();
   if(!val.startsWith('sk-')){alert('Chave inválida. Deve começar com sk-ant-...');return;}
   API_KEY=val;
-  localStorage.setItem('cob_key',val);
+  try{localStorage.setItem('cob_key',val);}catch(e){}
   document.getElementById('keyOk').style.display='block';
   document.getElementById('apiKey').value='●'.repeat(20);
 }
 window.addEventListener('load',()=>{
-  const k=localStorage.getItem('cob_key');
-  if(k){API_KEY=k;document.getElementById('apiKey').value='●'.repeat(20);document.getElementById('keyOk').style.display='block';}
+  try{
+    const k=localStorage.getItem('cob_key');
+    if(k){API_KEY=k;document.getElementById('apiKey').value='●'.repeat(20);document.getElementById('keyOk').style.display='block';}
+  }catch(e){}
 });
 ['fCli','fUni','fPri','fMul','fJur','fAV','fPV','fPA','fEnt'].forEach(id=>document.getElementById(id).addEventListener('input',atualizar));
 function g(id){return document.getElementById(id).value;}
@@ -167,12 +170,20 @@ Regras: ponto decimal, sem R$. principal=valor principal vencido. a_vencer=valor
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':API_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
         messages:[{role:'user',content:[
           {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
           {type:'text',text:prompt}
-        ]}]})
+        ]}]
+      })
     });
     const data=await resp.json();
     if(data.error)throw new Error(data.error.message);
@@ -188,7 +199,11 @@ Regras: ponto decimal, sem R$. principal=valor principal vencido. a_vencer=valor
     if(d.parcelas_vencidas)document.getElementById('fPV').value=d.parcelas_vencidas;
     if(d.parcelas_a_vencer)document.getElementById('fPA').value=d.parcelas_a_vencer;
     setLog('ok','✓ Dados preenchidos automaticamente!');atualizar();
-  }catch(err){setLog('e','Erro: '+err.message);atualizar();}
+  }catch(err){
+    let msg=err.message;
+    if(msg.includes('Failed to fetch'))msg='Erro de conexão. Verifique sua internet ou tente outro navegador.';
+    setLog('e','Erro: '+msg);atualizar();
+  }
 }
 function atualizar(){
   const pv=parseInt(g('fPV'))||0,pa=parseInt(g('fPA'))||0,tot=pv+pa;
@@ -232,3 +247,5 @@ function baixarExcel(){
 </script>
 </body>
 </html>
+HTMLEOF
+echo "OK"
